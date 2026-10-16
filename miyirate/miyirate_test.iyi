@@ -1,0 +1,53 @@
+# micrate's spec/micrate_spec.cr. A plain program: a failed `assert` exits
+# non-zero, which is what `iyi test` reads.
+module miyirate/miyirate_test
+
+import miyirate/errors::{UnorderedMigrations}
+import miyirate/migration::{Direction}
+import miyirate/miyirate::{extract_dbversion, migration_plan}
+
+def sample_migrations : Hash(Int64, Bool)
+  {
+    20160523142308_i64 => true,
+    20160523142313_i64 => true,
+    20160523142316_i64 => true,
+  }
+end
+
+# dbversion: returns 0 if table is empty
+assert extract_dbversion([] of Tuple(Int64, Bool)) == 0
+
+# dbversion: returns last applied migration (rows newest first)
+assert extract_dbversion([
+  {20160101140000_i64, true},
+  {20160101130000_i64, true},
+  {20160101120000_i64, true},
+]) == 20160101140000
+
+# dbversion: ignores rolled back versions
+assert extract_dbversion([
+  {20160101140000_i64, false},
+  {20160101140000_i64, true},
+  {20160101120000_i64, true},
+]) == 20160101120000
+
+# up, going forward: runs all migrations if starting from clean db
+assert migration_plan(sample_migrations, 0_i64, 20160523142316_i64, Direction::Forward).or_panic ==
+       [20160523142308_i64, 20160523142313_i64, 20160523142316_i64]
+
+# up, going forward: skips already performed migrations
+assert migration_plan(sample_migrations, 20160523142308_i64, 20160523142316_i64, Direction::Forward).or_panic ==
+       [20160523142313_i64, 20160523142316_i64]
+
+# up, going backwards: skips already performed migrations
+assert migration_plan(sample_migrations, 20160523142316_i64, 20160523142308_i64, Direction::Backwards).or_panic ==
+       [20160523142316_i64, 20160523142313_i64]
+
+# fails if there are unapplied migrations with older timestamp than current version
+unordered = migration_plan({
+  20160523142308_i64 => false,
+  20160523142313_i64 => true,
+  20160523142316_i64 => false,
+}, 20160523142313_i64, 20160523142316_i64, Direction::Forward)
+assert unordered.is_a?(UnorderedMigrations)
+assert unordered.as(UnorderedMigrations).versions == [20160523142308_i64]
