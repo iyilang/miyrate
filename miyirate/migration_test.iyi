@@ -10,47 +10,47 @@ end
 
 # split simple statements
 simple = Migration.new(20160101120000_i64, "foo.sql", "\
--- +micrate Up
+-- +miyirate Up
 CREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);
 
--- +micrate Down
+-- +miyirate Down
 DROP TABLE foo;")
 
 assert statements(simple, Direction::Forward) == [
-  "-- +micrate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
+  "-- +miyirate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
 ]
 assert statements(simple, Direction::Backwards) == [
-  "-- +micrate Down\nDROP TABLE foo;",
+  "-- +miyirate Down\nDROP TABLE foo;",
 ]
 
 # splits mixed Up and Down statements
 mixed = Migration.new(20160101120000_i64, "foo.sql", "\
--- +micrate Up
+-- +miyirate Up
 CREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);
 
--- +micrate Down
+-- +miyirate Down
 DROP TABLE foo;
 
--- +micrate Up
+-- +miyirate Up
 CREATE TABLE bar(id INT PRIMARY KEY);
 
--- +micrate Down
+-- +miyirate Down
 DROP TABLE bar;")
 
 assert statements(mixed, Direction::Forward) == [
-  "-- +micrate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
-  "-- +micrate Up\nCREATE TABLE bar(id INT PRIMARY KEY);",
+  "-- +miyirate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
+  "-- +miyirate Up\nCREATE TABLE bar(id INT PRIMARY KEY);",
 ]
 assert statements(mixed, Direction::Backwards) == [
-  "-- +micrate Down\nDROP TABLE foo;",
-  "-- +micrate Down\nDROP TABLE bar;",
+  "-- +miyirate Down\nDROP TABLE foo;",
+  "-- +miyirate Down\nDROP TABLE bar;",
 ]
 
 # splits complex statements with user hints: PL/pgSQL with semicolons of
 # its own, inside StatementBegin and StatementEnd
 complex = Migration.new(20160101120000_i64, "foo.sql", "\
--- +micrate Up
--- +micrate StatementBegin
+-- +miyirate Up
+-- +miyirate StatementBegin
 CREATE OR REPLACE FUNCTION histories_partition_creation( DATE, DATE )
 returns void AS $$
 DECLARE
@@ -71,7 +71,7 @@ BEGIN
 END;         -- FUNCTION END
 $$
 language plpgsql;
--- +micrate StatementEnd")
+-- +miyirate StatementEnd")
 
 ret = statements(complex, Direction::Forward)
 assert ret.size == 1
@@ -79,18 +79,18 @@ assert ret[0] == complex.source
 
 # allows up and down sections with complex scripts
 sections = Migration.new(20160101120000_i64, "foo.sql", "\
--- +micrate Up
--- +micrate StatementBegin
+-- +miyirate Up
+-- +miyirate StatementBegin
 foo;
 bar;
--- +micrate StatementEnd
+-- +miyirate StatementEnd
 
--- +micrate Down
+-- +miyirate Down
 baz;")
 
 assert statements(sections, Direction::Forward) == [
-  "-- +micrate Up\n-- +micrate StatementBegin\nfoo;\nbar;\n-- +micrate StatementEnd",
+  "-- +miyirate Up\n-- +miyirate StatementBegin\nfoo;\nbar;\n-- +miyirate StatementEnd",
 ]
 assert statements(sections, Direction::Backwards) == [
-  "-- +micrate Down\nbaz;",
+  "-- +miyirate Down\nbaz;",
 ]

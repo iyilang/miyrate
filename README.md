@@ -5,16 +5,17 @@ A database migration tool for [iyi](https://iyi.dev): a port of
 [iyi-db](https://github.com/iyilang/db). Like micrate, it is inspired by
 [goose](https://bitbucket.org/liamstask/goose/).
 
-Migrations, directives (`-- +micrate Up`, `Down`, `StatementBegin`,
-`StatementEnd`) and the version table (`micrate_db_version`) are micrate's,
-so a project and a database migrated with micrate carry on with miyirate
-unchanged.
+A migration is a SQL file whose `-- +miyirate` directives (`Up`, `Down`,
+`StatementBegin`, `StatementEnd`) mark what runs in each direction, and the
+database records what was applied in the `miyirate_db_version` table.
+micrate's `-- +micrate` directives and `micrate_db_version` table are not
+read: rename them to move a micrate project over.
 
 The `miyirate` executable migrates PostgreSQL (`postgres://`,
 `postgresql://`, through [iyi-pg](https://github.com/iyilang/pg)) and SQLite
 (`sqlite3:`, through [iyi-sqlite](https://github.com/iyilang/sqlite)). The
-library also carries micrate's MySQL dialect, for a program that registers a
-MySQL driver itself; iyi has none yet.
+library also carries a MySQL dialect, for a program that registers a MySQL
+driver itself; iyi has none yet.
 
 ## Building
 
@@ -50,21 +51,21 @@ Commands:
 `db/migrations/20160524162446_add_users_table.sql`:
 
 ```sql
--- +micrate Up
+-- +miyirate Up
 -- SQL in section 'Up' is executed when this migration is applied
 
 
--- +micrate Down
+-- +miyirate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 ```
 
 Fill in both sections:
 
 ```sql
--- +micrate Up
+-- +miyirate Up
 CREATE TABLE users(id INT PRIMARY KEY, email VARCHAR NOT NULL);
 
--- +micrate Down
+-- +miyirate Down
 DROP TABLE users;
 ```
 
@@ -93,8 +94,8 @@ own, such as a function body, goes between `StatementBegin` and
 `StatementEnd`:
 
 ```sql
--- +micrate Up
--- +micrate StatementBegin
+-- +miyirate Up
+-- +miyirate StatementBegin
 CREATE OR REPLACE FUNCTION histories_count()
 returns bigint AS $$
 DECLARE
@@ -105,7 +106,7 @@ BEGIN
 END;
 $$
 language plpgsql;
--- +micrate StatementEnd
+-- +miyirate StatementEnd
 ```
 
 A migration that was never applied but is older than the database's current
@@ -125,7 +126,7 @@ The modules, under the package's short name:
 | `miyirate/errors` | `MiyirateError`, `UnorderedMigrations`, `MigrationFailed` |
 | `miyirate/cli` | `run(args)`, `setup_log`, one function per command |
 
-A runner of your own, with the drivers you want, is micrate's runner script:
+A runner of your own, with the drivers you want:
 
 ```iyi
 module migrate
@@ -151,6 +152,7 @@ which answers `nil`, a `MiyirateError` or the driver's `DBError`.
 
 | micrate | miyirate | why |
 |---|---|---|
+| `-- +micrate Up`, table `micrate_db_version` | `-- +miyirate Up`, table `miyirate_db_version` | the tool's own name |
 | raises `Exception`, `UnorderedMigrationsException` | answers `MiyirateError`, `UnorderedMigrations`, `MigrationFailed`, `DBError` | errors are values in iyi |
 | a failed migration is logged and `micrate up` exits 0 | it is rolled back, reported, and `miyirate` exits 1 | the error is a value the CLI answers with |
 | `migration_status` answers `Hash(Migration, Time?)` | `Array(Tuple(Migration, Time?))`, oldest first | the order `status` prints in, without hashing a class |

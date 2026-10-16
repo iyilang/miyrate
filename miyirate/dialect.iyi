@@ -1,7 +1,5 @@
-# The SQL each database engine needs for micrate's version table.
-#
-# The table keeps micrate's name and columns, so a database migrated by
-# micrate is migrated on by miyirate.
+# The SQL each database engine needs for the version table,
+# `miyirate_db_version`.
 module miyirate/dialect
 
 import std/time::{Time}
@@ -38,7 +36,7 @@ end
 
 pub class Postgres < Dialect
   def create_migrations_table(db : Database) : ExecResult | DBError
-    db.exec("CREATE TABLE micrate_db_version (
+    db.exec("CREATE TABLE miyirate_db_version (
               id serial NOT NULL,
               version_id bigint NOT NULL,
               is_applied boolean NOT NULL,
@@ -48,11 +46,11 @@ pub class Postgres < Dialect
   end
 
   def migration_status(version : Int64, db : Database) : Array(Tuple(Time, Bool)) | DBError
-    db.query_all("SELECT tstamp, is_applied FROM micrate_db_version WHERE version_id=$1 ORDER BY tstamp DESC LIMIT 1", version, as: Tuple(Time, Bool))
+    db.query_all("SELECT tstamp, is_applied FROM miyirate_db_version WHERE version_id=$1 ORDER BY tstamp DESC LIMIT 1", version, as: Tuple(Time, Bool))
   end
 
   def record_migration(version : Int64, is_applied : Bool, db : Connection) : ExecResult | DBError
-    db.exec("INSERT INTO micrate_db_version (version_id, is_applied) VALUES ($1, $2);", version, is_applied)
+    db.exec("INSERT INTO miyirate_db_version (version_id, is_applied) VALUES ($1, $2);", version, is_applied)
   end
 end
 
@@ -60,7 +58,7 @@ end
 # registers itself.
 pub class Mysql < Dialect
   def create_migrations_table(db : Database) : ExecResult | DBError
-    db.exec("CREATE TABLE micrate_db_version (
+    db.exec("CREATE TABLE miyirate_db_version (
               id serial NOT NULL,
               version_id bigint NOT NULL,
               is_applied boolean NOT NULL,
@@ -70,11 +68,11 @@ pub class Mysql < Dialect
   end
 
   def migration_status(version : Int64, db : Database) : Array(Tuple(Time, Bool)) | DBError
-    db.query_all("SELECT tstamp, is_applied FROM micrate_db_version WHERE version_id=? ORDER BY tstamp DESC LIMIT 1", version, as: Tuple(Time, Bool))
+    db.query_all("SELECT tstamp, is_applied FROM miyirate_db_version WHERE version_id=? ORDER BY tstamp DESC LIMIT 1", version, as: Tuple(Time, Bool))
   end
 
   def record_migration(version : Int64, is_applied : Bool, db : Connection) : ExecResult | DBError
-    db.exec("INSERT INTO micrate_db_version (version_id, is_applied) VALUES (?, ?);", version, is_applied)
+    db.exec("INSERT INTO miyirate_db_version (version_id, is_applied) VALUES (?, ?);", version, is_applied)
   end
 end
 
@@ -82,7 +80,7 @@ pub class Sqlite3 < Dialect
   # The timestamp is written by the driver rather than defaulted by SQLite,
   # so the driver reads back the format it wrote.
   def create_migrations_table(db : Database) : ExecResult | DBError
-    db.exec("CREATE TABLE micrate_db_version (
+    db.exec("CREATE TABLE miyirate_db_version (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               version_id INTEGER NOT NULL,
               is_applied INTEGER NOT NULL,
@@ -91,10 +89,10 @@ pub class Sqlite3 < Dialect
   end
 
   def migration_status(version : Int64, db : Database) : Array(Tuple(Time, Bool)) | DBError
-    db.query_all("SELECT tstamp, is_applied FROM micrate_db_version WHERE version_id=? ORDER BY tstamp DESC LIMIT 1", version, as: Tuple(Time, Bool))
+    db.query_all("SELECT tstamp, is_applied FROM miyirate_db_version WHERE version_id=? ORDER BY tstamp DESC LIMIT 1", version, as: Tuple(Time, Bool))
   end
 
   def record_migration(version : Int64, is_applied : Bool, db : Connection) : ExecResult | DBError
-    db.exec("INSERT INTO micrate_db_version (version_id, is_applied, tstamp) VALUES (?, ?, ?);", version, is_applied, Time.utc)
+    db.exec("INSERT INTO miyirate_db_version (version_id, is_applied, tstamp) VALUES (?, ?, ?);", version, is_applied, Time.utc)
   end
 end

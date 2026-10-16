@@ -42,7 +42,7 @@ end
 
 # Every record of the version table, newest first.
 pub def get_versions_last_first_order(db : Database) : Array(Tuple(Int64, Bool)) | DBError
-  db.query_all("SELECT version_id, is_applied from micrate_db_version ORDER BY id DESC", as: Tuple(Int64, Bool))
+  db.query_all("SELECT version_id, is_applied from miyirate_db_version ORDER BY id DESC", as: Tuple(Int64, Bool))
 end
 
 pub def create_migrations_table(db : Database) : ExecResult | MiyirateError | DBError

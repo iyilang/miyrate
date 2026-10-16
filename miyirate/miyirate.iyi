@@ -15,11 +15,11 @@ import miyirate/db::{get_versions_last_first_order, create_migrations_table, rec
 LOG = Log.for("miyirate")
 
 MIGRATION_TEMPLATE = "\
--- +micrate Up
+-- +miyirate Up
 -- SQL in section 'Up' is executed when this migration is applied
 
 
--- +micrate Down
+-- +miyirate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 "
 

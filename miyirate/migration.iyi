@@ -14,9 +14,8 @@ pub enum Direction
 end
 
 pub class Migration
-  # The comment prefix micrate reads its directives from. Kept as micrate
-  # wrote it, so migrations written for micrate run unchanged.
-  pub SQL_CMD_PREFIX = "-- +micrate "
+  # The comment prefix directives are read from: `-- +miyirate Up`.
+  pub SQL_CMD_PREFIX = "-- +miyirate "
 
   getter version : Int64
   getter name : String
