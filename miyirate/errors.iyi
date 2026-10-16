@@ -1,0 +1,47 @@
+# What a migration run can fail with, as values (SPEC.md III.1). micrate
+# raised a bare `Exception` for most of these and
+# `UnorderedMigrationsException` for one; here each is a class implementing
+# `Error`, and a database failure stays the driver's own `DBError`.
+module miyirate/errors
+
+import db/db/errors::{DBError}
+
+# The root of every error miyirate answers itself.
+pub class MiyirateError
+  getter message : String
+
+  def initialize(@message : String)
+  end
+
+  def to_s : String
+    @message
+  end
+end
+
+impl Error for MiyirateError
+  def message : String
+    @message
+  end
+end
+
+# Migrations that were never applied but are older than the database's
+# current version. They are not run: they may have been written against an
+# older schema. micrate's `UnorderedMigrationsException`.
+pub class UnorderedMigrations < MiyirateError
+  getter versions : Array(Int64)
+
+  def initialize(@versions : Array(Int64))
+    super("unapplied migrations older than the current version: #{@versions.join(", ")}")
+  end
+end
+
+# A migration whose statements or version record failed; its transaction was
+# rolled back.
+pub class MigrationFailed < MiyirateError
+  getter version : Int64
+  getter cause : DBError
+
+  def initialize(@version : Int64, @cause : DBError)
+    super("An error occurred executing migration #{@version}: #{@cause.message}")
+  end
+end
