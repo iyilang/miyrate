@@ -1,0 +1,93 @@
+# One SQL migration file and the statements it runs in each direction.
+module miyirate/migration
+
+import std/dir::{Dir}
+import std/file::{File}
+import std/text
+import miyirate/errors::{MiyirateError}
+
+# Which way a migration is run: `Forward` applies its `Up` section,
+# `Backwards` its `Down` section.
+pub enum Direction
+  Forward
+  Backwards
+end
+
+pub class Migration
+  # The comment prefix micrate reads its directives from. Kept as micrate
+  # wrote it, so migrations written for micrate run unchanged.
+  pub SQL_CMD_PREFIX = "-- +micrate "
+
+  getter version : Int64
+  getter name : String
+  getter source : String
+
+  def initialize(@version : Int64, @name : String, @source : String)
+  end
+
+  # The statements of the section for *direction*, in file order.
+  #
+  # Algorithm ported from Goose: a statement ends at a line ending in a
+  # semicolon, unless it is inside `StatementBegin`/`StatementEnd`, which
+  # mark a statement holding semicolons of its own (a function body).
+  def statements(direction : Direction) : Array(String)
+    statements = [] of String
+    buffer = String::Builder.new
+
+    statement_ended = false
+    ignore_semicolons = false
+    direction_is_active = false
+
+    @source.split('\n').each do |line|
+      if line.starts_with?(SQL_CMD_PREFIX)
+        cmd = line[SQL_CMD_PREFIX.size, line.size - SQL_CMD_PREFIX.size].strip
+        case cmd
+        when "Up"
+          direction_is_active = direction.forward?
+        when "Down"
+          direction_is_active = direction.backwards?
+        when "StatementBegin"
+          ignore_semicolons = true if direction_is_active
+        when "StatementEnd"
+          if direction_is_active
+            statement_ended = ignore_semicolons
+            ignore_semicolons = false
+          end
+        end
+      end
+
+      next unless direction_is_active
+
+      buffer << line << "\n"
+
+      if (!ignore_semicolons && ends_with_semicolon?(line)) || statement_ended
+        statement_ended = false
+        statements << buffer.to_s
+        buffer = String::Builder.new
+      end
+    end
+
+    statements
+  end
+
+  # Whether *line*, without a trailing `--` comment, ends a statement.
+  def ends_with_semicolon?(line : String) : Bool
+    line.partition("--")[0].strip.ends_with?(";")
+  end
+
+  # Reads *file_name* from *dir*. The version is the file name up to its
+  # first `_`.
+  def self.from_file(dir : String, file_name : String) : Migration | MiyirateError
+    version = file_name.split('_')[0].to_i64?
+    return MiyirateError.new("migration file name #{file_name} does not start with a version number") unless version
+    new(version, file_name, File.read(File.join(dir, file_name)))
+  end
+
+  # Reads the migration in *dir* whose file name starts with *version*.
+  def self.from_version(dir : String, version : Int64) : Migration | MiyirateError
+    prefix = version.to_s
+    file_name = Dir.entries(dir).find { |name| name.starts_with?(prefix) }
+    return MiyirateError.new("no migration file for version #{version} in #{dir}") unless file_name
+    from_file(dir, file_name)
+  end
+end
