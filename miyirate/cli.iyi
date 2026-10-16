@@ -1,0 +1,204 @@
+# The `miyirate` command line: micrate's `Micrate::Cli`.
+#
+# A program runs it after importing the drivers it wants to reach, since
+# importing a driver is what registers it:
+#
+# ```
+# import pg/pg/pg
+# import miyirate/miyirate/cli
+#
+# exit Miyirate::Cli.run(Program.args)
+# ```
+module miyirate/cli
+
+import std/file::{File}
+import std/log::{Log, Formatter, Entry, IOBackend, Severity}
+import std/time::{Time}
+import std/uri::{URI}
+import std/text
+import db/db/errors::{DBError}
+import miyirate/errors::{MiyirateError, UnorderedMigrations}
+import miyirate/migration::{Migration}
+import miyirate/db::{configured_url, connect}
+import miyirate/miyirate::{dbversion, up, down, redo, migration_status, create, migrations_dir}
+
+LOG = Log.for("miyirate.cli")
+
+HELP = "miyirate is a database migration management system for iyi projects, a port of micrate, *heavily* inspired by Goose (https://bitbucket.org/liamstask/goose/).
+
+Usage:
+    set DATABASE_URL environment variable i.e. export DATABASE_URL=postgres://user:pswd@host:port/database
+    miyirate [options] <subcommand> [subcommand options]
+
+Commands:
+    create     Create the database (permissions required)
+    drop       Drop the database (permissions required)
+    up         Migrate the DB to the most recent version available
+    down       Roll back the version by 1
+    redo       Re-run the latest migration
+    status     Dump the migration status for the current DB
+    scaffold   Create the scaffolding for a new migration
+    dbversion  Print the current version of the database"
+
+# Writes the message alone, as a command line tool prints.
+class MessageFormatter < Formatter
+  def format(entry : Entry) : String
+    entry.message
+  end
+end
+
+# Logs at info level to standard output, messages only.
+pub def setup_log : Nil
+  Log.setup(Severity::Info, IOBackend.new(STDOUT, MessageFormatter.new))
+  nil
+end
+
+# Runs the command in *args* and answers the process's exit code.
+pub def run(args : Array(String)) : Int32
+  if args.empty?
+    print_help
+    return 0
+  end
+
+  rest = args.dup
+  command = rest.shift
+
+  result = case command
+           when "create"    then create_database
+           when "drop"      then drop_database
+           when "up"        then run_up
+           when "down"      then run_down
+           when "redo"      then run_redo
+           when "status"    then run_status
+           when "scaffold"  then run_scaffold(rest)
+           when "dbversion" then run_dbversion
+           else                  print_help
+           end
+
+  case result
+  when UnorderedMigrations
+    report_unordered_migrations(result.versions)
+    1
+  when MiyirateError, DBError
+    LOG.error { "Miyirate failed!\n#{result.message}" }
+    1
+  else
+    0
+  end
+end
+
+pub def drop_database : Nil | MiyirateError | DBError
+  url = configured_url!
+  if url.starts_with?("sqlite3:")
+    path = url.gsub("sqlite3:", "")
+    File.delete(path)
+    LOG.info { "Deleted file #{path}" }
+  else
+    name = set_database_to_schema(url)!
+    connect do |db|
+      db.exec("DROP DATABASE IF EXISTS #{name};")
+    end!
+    LOG.info { "Dropped database #{name}" }
+  end
+  nil
+end
+
+pub def create_database : Nil | MiyirateError | DBError
+  url = configured_url!
+  if url.starts_with?("sqlite3:")
+    LOG.info { "For sqlite3, the database will be created during the first migration." }
+  else
+    name = set_database_to_schema(url)!
+    connect do |db|
+      db.exec("CREATE DATABASE #{name};")
+    end!
+    LOG.info { "Created database #{name}" }
+  end
+  nil
+end
+
+# Points the connection URL at the server's default database, named as the
+# scheme is (micrate's choice: `postgres`, `mysql`), and answers the name of
+# the database *url* named, the one to create or drop.
+pub def set_database_to_schema(url : String) : String | MiyirateError
+  uri = URI.parse?(url)
+  return MiyirateError.new("Could not determine database name") unless uri
+  path = uri.path
+  name = path.gsub("/", "")
+  return MiyirateError.new("Could not determine database name") if name.empty?
+  ::Miyirate::Db.connection_url = url.gsub(path, "/#{uri.scheme}")
+  name
+end
+
+pub def run_up : Nil | MiyirateError | DBError
+  connect { |db| up(db) }!
+end
+
+pub def run_down : Nil | MiyirateError | DBError
+  connect { |db| down(db) }!
+end
+
+pub def run_redo : Nil | MiyirateError | DBError
+  connect { |db| redo(db) }!
+end
+
+pub def run_status : Nil | MiyirateError | DBError
+  status = connect { |db| migration_status(db) }!
+  LOG.info { "Applied At                  Migration" }
+  LOG.info { "=======================================" }
+  status.each do |entry|
+    applied_at = entry[1]
+    ts = applied_at ? format_time(applied_at) : "Pending"
+    LOG.info { "#{ts.ljust(24)} -- #{entry[0].name}" }
+  end
+  nil
+end
+
+pub def run_scaffold(args : Array(String)) : Nil | MiyirateError
+  return MiyirateError.new("Migration name required") if args.empty?
+
+  migration_file = create(args[0], migrations_dir, Time.utc)
+  LOG.info { "Created #{migration_file}" }
+  nil
+end
+
+pub def run_dbversion : Nil | MiyirateError | DBError
+  version = connect { |db| dbversion(db) }
+  case version
+  when Int64
+    LOG.info { version.to_s }
+  when MiyirateError
+    return version
+  when DBError
+    return MiyirateError.new("Could not read dbversion. Please make sure the database exists and verify the connection URL.\n#{version.message}")
+  end
+  nil
+end
+
+pub def report_unordered_migrations(conflicting : Array(Int64)) : Nil
+  LOG.info { "The following migrations haven't been applied but have a timestamp older then the current version:" }
+  conflicting.each do |version|
+    case migration = Migration.from_version(migrations_dir, version)
+    when Migration
+      LOG.info { "    #{migration.name}" }
+    else
+      LOG.info { "    #{version}" }
+    end
+  end
+  LOG.info { "
+Miyirate will not run these migrations because they may have been written with an older database model in mind.
+You should probably check if they need to be updated and rename them so they are considered a newer version." }
+end
+
+pub def print_help : Nil
+  LOG.info { HELP }
+end
+
+# `2016-05-24 16:31:07 UTC`, as micrate printed it.
+def format_time(time : Time) : String
+  "#{time.year.to_s.rjust(4, '0')}-#{pad2(time.month)}-#{pad2(time.day)} #{pad2(time.hour)}:#{pad2(time.minute)}:#{pad2(time.second)} UTC"
+end
+
+def pad2(n : Int32) : String
+  n.to_s.rjust(2, '0')
+end
