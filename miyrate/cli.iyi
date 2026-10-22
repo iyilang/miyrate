@@ -1,15 +1,15 @@
-# The `miyirate` command line: micrate's `Micrate::Cli`.
+# The `miyrate` command line: micrate's `Micrate::Cli`.
 #
 # A program runs it after importing the drivers it wants to reach, since
 # importing a driver is what registers it:
 #
 # ```
 # import pg/pg/pg
-# import miyirate/miyirate/cli
+# import miyrate/miyrate/cli
 #
-# exit Miyirate::Cli.run(Program.args)
+# exit Miyrate::Cli.run(Program.args)
 # ```
-module miyirate/cli
+module miyrate/cli
 
 import std/file::{File}
 import std/log::{Log, Formatter, Entry, IOBackend, Severity}
@@ -17,18 +17,18 @@ import std/time::{Time}
 import std/uri::{URI}
 import std/text
 import db/db/errors::{DBError}
-import miyirate/errors::{MiyirateError, UnorderedMigrations}
-import miyirate/migration::{Migration}
-import miyirate/db::{configured_url, connect}
-import miyirate/miyirate::{dbversion, up, down, redo, migration_status, create, migrations_dir}
+import miyrate/errors::{MiyrateError, UnorderedMigrations}
+import miyrate/migration::{Migration}
+import miyrate/db::{configured_url, connect}
+import miyrate/miyrate::{dbversion, up, down, redo, migration_status, create, migrations_dir}
 
-LOG = Log.for("miyirate.cli")
+LOG = Log.for("miyrate.cli")
 
-HELP = "miyirate is a database migration management system for iyi projects, a port of micrate, *heavily* inspired by Goose (https://bitbucket.org/liamstask/goose/).
+HELP = "miyrate is a database migration management system for iyi projects, a port of micrate, *heavily* inspired by Goose (https://bitbucket.org/liamstask/goose/).
 
 Usage:
     set DATABASE_URL environment variable i.e. export DATABASE_URL=postgres://user:pswd@host:port/database
-    miyirate [options] <subcommand> [subcommand options]
+    miyrate [options] <subcommand> [subcommand options]
 
 Commands:
     create     Create the database (permissions required)
@@ -79,15 +79,15 @@ pub def run(args : Array(String)) : Int32
   when UnorderedMigrations
     report_unordered_migrations(result.versions)
     1
-  when MiyirateError, DBError
-    LOG.error { "Miyirate failed!\n#{result.message}" }
+  when MiyrateError, DBError
+    LOG.error { "Miyrate failed!\n#{result.message}" }
     1
   else
     0
   end
 end
 
-pub def drop_database : Nil | MiyirateError | DBError
+pub def drop_database : Nil | MiyrateError | DBError
   url = configured_url!
   if url.starts_with?("sqlite3:")
     path = url.gsub("sqlite3:", "")
@@ -103,7 +103,7 @@ pub def drop_database : Nil | MiyirateError | DBError
   nil
 end
 
-pub def create_database : Nil | MiyirateError | DBError
+pub def create_database : Nil | MiyrateError | DBError
   url = configured_url!
   if url.starts_with?("sqlite3:")
     LOG.info { "For sqlite3, the database will be created during the first migration." }
@@ -120,29 +120,29 @@ end
 # Points the connection URL at the server's default database, named as the
 # scheme is (micrate's choice: `postgres`, `mysql`), and answers the name of
 # the database *url* named, the one to create or drop.
-pub def set_database_to_schema(url : String) : String | MiyirateError
+pub def set_database_to_schema(url : String) : String | MiyrateError
   uri = URI.parse?(url)
-  return MiyirateError.new("Could not determine database name") unless uri
+  return MiyrateError.new("Could not determine database name") unless uri
   path = uri.path
   name = path.gsub("/", "")
-  return MiyirateError.new("Could not determine database name") if name.empty?
-  ::Miyirate::Db.connection_url = url.gsub(path, "/#{uri.scheme}")
+  return MiyrateError.new("Could not determine database name") if name.empty?
+  ::Miyrate::Db.connection_url = url.gsub(path, "/#{uri.scheme}")
   name
 end
 
-pub def run_up : Nil | MiyirateError | DBError
+pub def run_up : Nil | MiyrateError | DBError
   connect { |db| up(db) }!
 end
 
-pub def run_down : Nil | MiyirateError | DBError
+pub def run_down : Nil | MiyrateError | DBError
   connect { |db| down(db) }!
 end
 
-pub def run_redo : Nil | MiyirateError | DBError
+pub def run_redo : Nil | MiyrateError | DBError
   connect { |db| redo(db) }!
 end
 
-pub def run_status : Nil | MiyirateError | DBError
+pub def run_status : Nil | MiyrateError | DBError
   status = connect { |db| migration_status(db) }!
   LOG.info { "Applied At                  Migration" }
   LOG.info { "=======================================" }
@@ -154,23 +154,23 @@ pub def run_status : Nil | MiyirateError | DBError
   nil
 end
 
-pub def run_scaffold(args : Array(String)) : Nil | MiyirateError
-  return MiyirateError.new("Migration name required") if args.empty?
+pub def run_scaffold(args : Array(String)) : Nil | MiyrateError
+  return MiyrateError.new("Migration name required") if args.empty?
 
   migration_file = create(args[0], migrations_dir, Time.utc)
   LOG.info { "Created #{migration_file}" }
   nil
 end
 
-pub def run_dbversion : Nil | MiyirateError | DBError
+pub def run_dbversion : Nil | MiyrateError | DBError
   version = connect { |db| dbversion(db) }
   case version
   when Int64
     LOG.info { version.to_s }
-  when MiyirateError
+  when MiyrateError
     return version
   when DBError
-    return MiyirateError.new("Could not read dbversion. Please make sure the database exists and verify the connection URL.\n#{version.message}")
+    return MiyrateError.new("Could not read dbversion. Please make sure the database exists and verify the connection URL.\n#{version.message}")
   end
   nil
 end
@@ -186,7 +186,7 @@ pub def report_unordered_migrations(conflicting : Array(Int64)) : Nil
     end
   end
   LOG.info { "
-Miyirate will not run these migrations because they may have been written with an older database model in mind.
+Miyrate will not run these migrations because they may have been written with an older database model in mind.
 You should probably check if they need to be updated and rename them so they are considered a newer version." }
 end
 

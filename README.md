@@ -1,17 +1,17 @@
-# miyirate
+# miyrate
 
 A database migration tool for [iyi](https://iyi.dev): a port of
 [micrate](https://github.com/amberframework/micrate) 0.15.1, written in iyi on
 [iyi-db](https://github.com/iyilang/db). Like micrate, it is inspired by
 [goose](https://bitbucket.org/liamstask/goose/).
 
-A migration is a SQL file whose `-- +miyirate` directives (`Up`, `Down`,
+A migration is a SQL file whose `-- +miyrate` directives (`Up`, `Down`,
 `StatementBegin`, `StatementEnd`) mark what runs in each direction, and the
-database records what was applied in the `miyirate_db_version` table.
+database records what was applied in the `miyrate_db_version` table.
 micrate's `-- +micrate` directives and `micrate_db_version` table are not
 read: rename them to move a micrate project over.
 
-The `miyirate` executable migrates PostgreSQL (`postgres://`,
+The `miyrate` executable migrates PostgreSQL (`postgres://`,
 `postgresql://`, through [iyi-pg](https://github.com/iyilang/pg)) and SQLite
 (`sqlite3:`, through [iyi-sqlite](https://github.com/iyilang/sqlite)). The
 library also carries a MySQL dialect, for a program that registers a MySQL
@@ -22,7 +22,7 @@ driver itself; iyi has none yet.
 iyi 0.17.0 or later.
 
 ```sh
-iyi build -o bin/miyirate miyirate.iyi
+iyi build -o bin/miyrate miyrate.iyi
 ```
 
 SQLite needs its library at link time; see iyi-sqlite's requirements. On
@@ -31,11 +31,11 @@ Windows that is `sqlite3.lib` and `sqlite3.dll` in the directory named by
 
 ## Command line
 
-miyirate connects to the database named by the `DATABASE_URL` environment
+miyrate connects to the database named by the `DATABASE_URL` environment
 variable and reads migrations from `db/migrations`.
 
 ```
-$ miyirate help
+$ miyrate help
 Commands:
     create     Create the database (permissions required)
     drop       Drop the database (permissions required)
@@ -47,39 +47,39 @@ Commands:
     dbversion  Print the current version of the database
 ```
 
-`miyirate scaffold add_users_table` writes
+`miyrate scaffold add_users_table` writes
 `db/migrations/20160524162446_add_users_table.sql`:
 
 ```sql
--- +miyirate Up
+-- +miyrate Up
 -- SQL in section 'Up' is executed when this migration is applied
 
 
--- +miyirate Down
+-- +miyrate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 ```
 
 Fill in both sections:
 
 ```sql
--- +miyirate Up
+-- +miyrate Up
 CREATE TABLE users(id INT PRIMARY KEY, email VARCHAR NOT NULL);
 
--- +miyirate Down
+-- +miyrate Down
 DROP TABLE users;
 ```
 
-and run every pending migration with `miyirate up`:
+and run every pending migration with `miyrate up`:
 
 ```
-$ miyirate up
+$ miyrate up
 Migrating db, current version: 0, target: 20160524162446
 OK   20160524162446_add_users_table.sql
 
-$ miyirate dbversion
+$ miyrate dbversion
 20160524162446
 
-$ miyirate status
+$ miyrate status
 Applied At                  Migration
 =======================================
 2016-05-24 16:31:07 UTC  -- 20160524162446_add_users_table.sql
@@ -94,8 +94,8 @@ own, such as a function body, goes between `StatementBegin` and
 `StatementEnd`:
 
 ```sql
--- +miyirate Up
--- +miyirate StatementBegin
+-- +miyrate Up
+-- +miyrate StatementBegin
 CREATE OR REPLACE FUNCTION histories_count()
 returns bigint AS $$
 DECLARE
@@ -106,11 +106,11 @@ BEGIN
 END;
 $$
 language plpgsql;
--- +miyirate StatementEnd
+-- +miyrate StatementEnd
 ```
 
 A migration that was never applied but is older than the database's current
-version is not run: miyirate lists it and exits 1, since it may have been
+version is not run: miyrate lists it and exits 1, since it may have been
 written against an older schema. Rename it to a newer version to run it.
 
 ## Library
@@ -119,12 +119,12 @@ The modules, under the package's short name:
 
 | module | what it holds |
 |---|---|
-| `miyirate/miyirate` | `up`, `down`, `redo`, `dbversion`, `migration_status`, `create`, `migration_plan`, `extract_dbversion`, `migrations_dir`, `connection_url=` |
-| `miyirate/db` | `connection_url`, `connect`, and the version-table queries |
-| `miyirate/dialect` | `Dialect` and `Postgres`, `Mysql`, `Sqlite3` |
-| `miyirate/migration` | `Migration`, `Direction` |
-| `miyirate/errors` | `MiyirateError`, `UnorderedMigrations`, `MigrationFailed` |
-| `miyirate/cli` | `run(args)`, `setup_log`, one function per command |
+| `miyrate/miyrate` | `up`, `down`, `redo`, `dbversion`, `migration_status`, `create`, `migration_plan`, `extract_dbversion`, `migrations_dir`, `connection_url=` |
+| `miyrate/db` | `connection_url`, `connect`, and the version-table queries |
+| `miyrate/dialect` | `Dialect` and `Postgres`, `Mysql`, `Sqlite3` |
+| `miyrate/migration` | `Migration`, `Direction` |
+| `miyrate/errors` | `MiyrateError`, `UnorderedMigrations`, `MigrationFailed` |
+| `miyrate/cli` | `run(args)`, `setup_log`, one function per command |
 
 A runner of your own, with the drivers you want:
 
@@ -132,36 +132,36 @@ A runner of your own, with the drivers you want:
 module migrate
 
 import pg/pg/pg
-import miyirate/miyirate/cli
-import miyirate/miyirate/db
+import miyrate/miyrate/cli
+import miyrate/miyrate/db
 
-Miyirate::Db.connection_url = "postgres://user:pswd@localhost/app"
-Miyirate::Cli.setup_log
-exit Miyirate::Cli.run(Program.args)
+Miyrate::Db.connection_url = "postgres://user:pswd@localhost/app"
+Miyrate::Cli.setup_log
+exit Miyrate::Cli.run(Program.args)
 ```
 
 or, without the command line:
 
 ```iyi
-Miyirate::Db.connect { |db| Miyirate::Miyirate.up(db) }
+Miyrate::Db.connect { |db| Miyrate::Miyrate.up(db) }
 ```
 
-which answers `nil`, a `MiyirateError` or the driver's `DBError`.
+which answers `nil`, a `MiyrateError` or the driver's `DBError`.
 
 ## What is different from micrate
 
-| micrate | miyirate | why |
+| micrate | miyrate | why |
 |---|---|---|
-| `-- +micrate Up`, table `micrate_db_version` | `-- +miyirate Up`, table `miyirate_db_version` | the tool's own name |
-| raises `Exception`, `UnorderedMigrationsException` | answers `MiyirateError`, `UnorderedMigrations`, `MigrationFailed`, `DBError` | errors are values in iyi |
-| a failed migration is logged and `micrate up` exits 0 | it is rolled back, reported, and `miyirate` exits 1 | the error is a value the CLI answers with |
+| `-- +micrate Up`, table `micrate_db_version` | `-- +miyrate Up`, table `miyrate_db_version` | the tool's own name |
+| raises `Exception`, `UnorderedMigrationsException` | answers `MiyrateError`, `UnorderedMigrations`, `MigrationFailed`, `DBError` | errors are values in iyi |
+| a failed migration is logged and `micrate up` exits 0 | it is rolled back, reported, and `miyrate` exits 1 | the error is a value the CLI answers with |
 | `migration_status` answers `Hash(Migration, Time?)` | `Array(Tuple(Migration, Time?))`, oldest first | the order `status` prints in, without hashing a class |
 | `scaffold` versions with `Time.local` | with `Time.utc` | iyi's `std/time` has no local zone |
-| `Micrate::DB.connection_url=`, `Migration.from_file(name)` | `Miyirate::Db.connection_url=`, `Migration.from_file(dir, name)` | a module path is a constant path; the migration module does not import the one that names the directory |
+| `Micrate::DB.connection_url=`, `Migration.from_file(name)` | `Miyrate::Db.connection_url=`, `Migration.from_file(dir, name)` | a module path is a constant path; the migration module does not import the one that names the directory |
 | `StatementBuilder` | `String::Builder` | the prelude's builder does it |
 
 ## Development
 
 ```sh
-iyi test miyirate   # micrate's specs, ported
+iyi test miyrate   # micrate's specs, ported
 ```

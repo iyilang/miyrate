@@ -1,8 +1,8 @@
 # micrate's spec/migration_spec.cr. A plain program: a failed `assert` exits
 # non-zero, which is what `iyi test` reads.
-module miyirate/migration_test
+module miyrate/migration_test
 
-import miyirate/migration::{Migration, Direction}
+import miyrate/migration::{Migration, Direction}
 
 def statements(migration : Migration, direction : Direction) : Array(String)
   migration.statements(direction).map(&.strip)
@@ -10,47 +10,47 @@ end
 
 # split simple statements
 simple = Migration.new(20160101120000_i64, "foo.sql", "\
--- +miyirate Up
+-- +miyrate Up
 CREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);
 
--- +miyirate Down
+-- +miyrate Down
 DROP TABLE foo;")
 
 assert statements(simple, Direction::Forward) == [
-  "-- +miyirate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
+  "-- +miyrate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
 ]
 assert statements(simple, Direction::Backwards) == [
-  "-- +miyirate Down\nDROP TABLE foo;",
+  "-- +miyrate Down\nDROP TABLE foo;",
 ]
 
 # splits mixed Up and Down statements
 mixed = Migration.new(20160101120000_i64, "foo.sql", "\
--- +miyirate Up
+-- +miyrate Up
 CREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);
 
--- +miyirate Down
+-- +miyrate Down
 DROP TABLE foo;
 
--- +miyirate Up
+-- +miyrate Up
 CREATE TABLE bar(id INT PRIMARY KEY);
 
--- +miyirate Down
+-- +miyrate Down
 DROP TABLE bar;")
 
 assert statements(mixed, Direction::Forward) == [
-  "-- +miyirate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
-  "-- +miyirate Up\nCREATE TABLE bar(id INT PRIMARY KEY);",
+  "-- +miyrate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
+  "-- +miyrate Up\nCREATE TABLE bar(id INT PRIMARY KEY);",
 ]
 assert statements(mixed, Direction::Backwards) == [
-  "-- +miyirate Down\nDROP TABLE foo;",
-  "-- +miyirate Down\nDROP TABLE bar;",
+  "-- +miyrate Down\nDROP TABLE foo;",
+  "-- +miyrate Down\nDROP TABLE bar;",
 ]
 
 # splits complex statements with user hints: PL/pgSQL with semicolons of
 # its own, inside StatementBegin and StatementEnd
 complex = Migration.new(20160101120000_i64, "foo.sql", "\
--- +miyirate Up
--- +miyirate StatementBegin
+-- +miyrate Up
+-- +miyrate StatementBegin
 CREATE OR REPLACE FUNCTION histories_partition_creation( DATE, DATE )
 returns void AS $$
 DECLARE
@@ -71,7 +71,7 @@ BEGIN
 END;         -- FUNCTION END
 $$
 language plpgsql;
--- +miyirate StatementEnd")
+-- +miyrate StatementEnd")
 
 ret = statements(complex, Direction::Forward)
 assert ret.size == 1
@@ -79,18 +79,18 @@ assert ret[0] == complex.source
 
 # allows up and down sections with complex scripts
 sections = Migration.new(20160101120000_i64, "foo.sql", "\
--- +miyirate Up
--- +miyirate StatementBegin
+-- +miyrate Up
+-- +miyrate StatementBegin
 foo;
 bar;
--- +miyirate StatementEnd
+-- +miyrate StatementEnd
 
--- +miyirate Down
+-- +miyrate Down
 baz;")
 
 assert statements(sections, Direction::Forward) == [
-  "-- +miyirate Up\n-- +miyirate StatementBegin\nfoo;\nbar;\n-- +miyirate StatementEnd",
+  "-- +miyrate Up\n-- +miyrate StatementBegin\nfoo;\nbar;\n-- +miyrate StatementEnd",
 ]
 assert statements(sections, Direction::Backwards) == [
-  "-- +miyirate Down\nbaz;",
+  "-- +miyrate Down\nbaz;",
 ]

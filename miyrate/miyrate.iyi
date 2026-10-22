@@ -1,6 +1,6 @@
 # Migrating a database with the SQL files in `db/migrations`: micrate's
 # `Micrate` module, one function for each command of the CLI.
-module miyirate/miyirate
+module miyrate/miyrate
 
 import std/dir::{Dir}
 import std/file::{File}
@@ -8,18 +8,18 @@ import std/log::{Log}
 import std/time::{Time}
 import db/db/core::{Database, Connection}
 import db/db/errors::{DBError}
-import miyirate/errors::{MiyirateError, UnorderedMigrations, MigrationFailed}
-import miyirate/migration::{Migration, Direction}
-import miyirate/db::{get_versions_last_first_order, create_migrations_table, record_migration, get_migration_status}
+import miyrate/errors::{MiyrateError, UnorderedMigrations, MigrationFailed}
+import miyrate/migration::{Migration, Direction}
+import miyrate/db::{get_versions_last_first_order, create_migrations_table, record_migration, get_migration_status}
 
-LOG = Log.for("miyirate")
+LOG = Log.for("miyrate")
 
 MIGRATION_TEMPLATE = "\
--- +miyirate Up
+-- +miyrate Up
 -- SQL in section 'Up' is executed when this migration is applied
 
 
--- +miyirate Down
+-- +miyrate Down
 -- SQL section 'Down' is executed when this migration is rolled back
 "
 
@@ -37,14 +37,14 @@ pub def migrations_dir : String
   File.join(db_dir, "migrations")
 end
 
-# Sets the URL `Miyirate::Db.connect` opens.
+# Sets the URL `Miyrate::Db.connect` opens.
 pub def connection_url=(url : String?) : String?
-  ::Miyirate::Db.connection_url = url
+  ::Miyrate::Db.connection_url = url
 end
 
 # The version the database is migrated to; 0 for none. The version table is
 # created when it cannot be read.
-pub def dbversion(db : Database) : Int64 | MiyirateError | DBError
+pub def dbversion(db : Database) : Int64 | MiyrateError | DBError
   rows = get_versions_last_first_order(db)
   if rows.is_a?(DBError)
     create_migrations_table(db)!
@@ -54,7 +54,7 @@ pub def dbversion(db : Database) : Int64 | MiyirateError | DBError
 end
 
 # Applies every pending migration.
-pub def up(db : Database) : Nil | MiyirateError | DBError
+pub def up(db : Database) : Nil | MiyrateError | DBError
   all_migrations = migrations_by_version!
 
   if all_migrations.empty?
@@ -69,7 +69,7 @@ pub def up(db : Database) : Nil | MiyirateError | DBError
 end
 
 # Rolls back the latest applied migration.
-pub def down(db : Database) : Nil | MiyirateError | DBError
+pub def down(db : Database) : Nil | MiyrateError | DBError
   all_migrations = migrations_by_version!
 
   current = dbversion(db)!
@@ -79,7 +79,7 @@ pub def down(db : Database) : Nil | MiyirateError | DBError
 end
 
 # Rolls back the latest applied migration and applies it again.
-pub def redo(db : Database) : Nil | MiyirateError | DBError
+pub def redo(db : Database) : Nil | MiyrateError | DBError
   all_migrations = migrations_by_version!
 
   current = dbversion(db)!
@@ -94,14 +94,14 @@ end
 # Every migration in `migrations_dir`, oldest first, with the time it was
 # applied, or nil when it is pending. Creates the version table when there
 # is none.
-pub def migration_status(db : Database) : Array(Tuple(Migration, Time?)) | MiyirateError | DBError
+pub def migration_status(db : Database) : Array(Tuple(Migration, Time?)) | MiyrateError | DBError
   dbversion(db)!
   migrations = migrations_by_version!.values.sorted_by(&.version)
   migration_status(migrations, db)
 end
 
 # *migrations*, each with the time it was applied, or nil when it is pending.
-pub def migration_status(migrations : Array(Migration), db : Database) : Array(Tuple(Migration, Time?)) | MiyirateError | DBError
+pub def migration_status(migrations : Array(Migration), db : Database) : Array(Tuple(Migration, Time?)) | MiyrateError | DBError
   status = [] of Tuple(Migration, Time?)
   migrations.each do |m|
     status << {m, get_migration_status(m.version, db)!}
@@ -154,7 +154,7 @@ pub def extract_dbversion(rows : Array(Tuple(Int64, Bool))) : Int64
   0_i64
 end
 
-def migrate(all_migrations : Hash(Int64, Migration), current : Int64, target : Int64, db : Database) : Outcome | MiyirateError | DBError
+def migrate(all_migrations : Hash(Int64, Migration), current : Int64, target : Int64, db : Database) : Outcome | MiyrateError | DBError
   direction = current < target ? Direction::Forward : Direction::Backwards
 
   status = migration_status(all_migrations.values, db)!
@@ -175,7 +175,7 @@ def migrate(all_migrations : Hash(Int64, Migration), current : Int64, target : I
     case result
     when DBError
       return MigrationFailed.new(migration.version, result)
-    when MiyirateError
+    when MiyrateError
       return result
     end
     LOG.info { "OK   #{migration.name}" }
@@ -183,7 +183,7 @@ def migrate(all_migrations : Hash(Int64, Migration), current : Int64, target : I
   Outcome::Success
 end
 
-def run_migration(migration : Migration, direction : Direction, cnn : Connection) : Nil | MiyirateError | DBError
+def run_migration(migration : Migration, direction : Direction, cnn : Connection) : Nil | MiyrateError | DBError
   migration.statements(direction).each do |stmt|
     cnn.exec(stmt)!
   end
@@ -197,7 +197,7 @@ def verify_unordered_migrations(current : Int64, status : Hash(Int64, Bool)) : N
   UnorderedMigrations.new(unordered.sorted) unless unordered.empty?
 end
 
-def previous_version(current : Int64, all_versions : Array(Int64)) : Int64 | MiyirateError
+def previous_version(current : Int64, all_versions : Array(Int64)) : Int64 | MiyrateError
   all_previous = all_versions.select { |version| version < current }
   return all_previous.sorted.last unless all_previous.empty?
 
@@ -205,12 +205,12 @@ def previous_version(current : Int64, all_versions : Array(Int64)) : Int64 | Miy
   # is left applied.
   return 0_i64 if all_versions.includes?(current)
 
-  MiyirateError.new("no previous version found")
+  MiyrateError.new("no previous version found")
 end
 
-def migrations_by_version : Hash(Int64, Migration) | MiyirateError
+def migrations_by_version : Hash(Int64, Migration) | MiyrateError
   dir = migrations_dir
-  return MiyirateError.new("migrations directory #{dir} not found") unless Dir.exists?(dir)
+  return MiyrateError.new("migrations directory #{dir} not found") unless Dir.exists?(dir)
 
   by_version = {} of Int64 => Migration
   Dir.entries(dir).each do |name|

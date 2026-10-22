@@ -2,12 +2,12 @@
 # raised a bare `Exception` for most of these and
 # `UnorderedMigrationsException` for one; here each is a class implementing
 # `Error`, and a database failure stays the driver's own `DBError`.
-module miyirate/errors
+module miyrate/errors
 
 import db/db/errors::{DBError}
 
-# The root of every error miyirate answers itself.
-pub class MiyirateError
+# The root of every error miyrate answers itself.
+pub class MiyrateError
   getter message : String
 
   def initialize(@message : String)
@@ -18,7 +18,7 @@ pub class MiyirateError
   end
 end
 
-impl Error for MiyirateError
+impl Error for MiyrateError
   def message : String
     @message
   end
@@ -27,7 +27,7 @@ end
 # Migrations that were never applied but are older than the database's
 # current version. They are not run: they may have been written against an
 # older schema. micrate's `UnorderedMigrationsException`.
-pub class UnorderedMigrations < MiyirateError
+pub class UnorderedMigrations < MiyrateError
   getter versions : Array(Int64)
 
   def initialize(@versions : Array(Int64))
@@ -37,7 +37,7 @@ end
 
 # A migration whose statements or version record failed; its transaction was
 # rolled back.
-pub class MigrationFailed < MiyirateError
+pub class MigrationFailed < MiyrateError
   getter version : Int64
   getter cause : DBError
 

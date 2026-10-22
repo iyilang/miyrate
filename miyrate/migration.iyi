@@ -1,10 +1,10 @@
 # One SQL migration file and the statements it runs in each direction.
-module miyirate/migration
+module miyrate/migration
 
 import std/dir::{Dir}
 import std/file::{File}
 import std/text
-import miyirate/errors::{MiyirateError}
+import miyrate/errors::{MiyrateError}
 
 # Which way a migration is run: `Forward` applies its `Up` section,
 # `Backwards` its `Down` section.
@@ -14,8 +14,8 @@ pub enum Direction
 end
 
 pub class Migration
-  # The comment prefix directives are read from: `-- +miyirate Up`.
-  pub SQL_CMD_PREFIX = "-- +miyirate "
+  # The comment prefix directives are read from: `-- +miyrate Up`.
+  pub SQL_CMD_PREFIX = "-- +miyrate "
 
   getter version : Int64
   getter name : String
@@ -76,17 +76,17 @@ pub class Migration
 
   # Reads *file_name* from *dir*. The version is the file name up to its
   # first `_`.
-  def self.from_file(dir : String, file_name : String) : Migration | MiyirateError
+  def self.from_file(dir : String, file_name : String) : Migration | MiyrateError
     version = file_name.split('_')[0].to_i64?
-    return MiyirateError.new("migration file name #{file_name} does not start with a version number") unless version
+    return MiyrateError.new("migration file name #{file_name} does not start with a version number") unless version
     new(version, file_name, File.read(File.join(dir, file_name)))
   end
 
   # Reads the migration in *dir* whose file name starts with *version*.
-  def self.from_version(dir : String, version : Int64) : Migration | MiyirateError
+  def self.from_version(dir : String, version : Int64) : Migration | MiyrateError
     prefix = version.to_s
     file_name = Dir.entries(dir).find { |name| name.starts_with?(prefix) }
-    return MiyirateError.new("no migration file for version #{version} in #{dir}") unless file_name
+    return MiyrateError.new("no migration file for version #{version} in #{dir}") unless file_name
     from_file(dir, file_name)
   end
 end

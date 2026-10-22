@@ -1,10 +1,10 @@
 # micrate's spec/micrate_spec.cr. A plain program: a failed `assert` exits
 # non-zero, which is what `iyi test` reads.
-module miyirate/miyirate_test
+module miyrate/miyrate_test
 
-import miyirate/errors::{UnorderedMigrations}
-import miyirate/migration::{Direction}
-import miyirate/miyirate::{extract_dbversion, migration_plan}
+import miyrate/errors::{UnorderedMigrations}
+import miyrate/migration::{Direction}
+import miyrate/miyrate::{extract_dbversion, migration_plan}
 
 def sample_migrations : Hash(Int64, Bool)
   {

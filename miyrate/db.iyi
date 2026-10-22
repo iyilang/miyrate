@@ -1,6 +1,6 @@
-# The connection miyirate migrates and the queries on its version table.
+# The connection miyrate migrates and the queries on its version table.
 # micrate's `Micrate::DB`.
-module miyirate/db
+module miyrate/db
 
 import std/env::{ENV}
 import std/time::{Time}
@@ -8,9 +8,9 @@ import db/db/db
 import db/db/core::{Database, Connection}
 import db/db/errors::{DBError}
 import db/db/value::{ExecResult}
-import miyirate/errors::{MiyirateError}
-import miyirate/dialect::{Dialect}
-import miyirate/migration::{Direction}
+import miyrate/errors::{MiyrateError}
+import miyrate/dialect::{Dialect}
+import miyrate/migration::{Direction}
 
 class Settings
   property connection_url : String? = nil
@@ -29,12 +29,12 @@ pub def connection_url=(url : String?) : String?
 end
 
 # Opens a single connection; the caller closes it.
-pub def connect : Connection | MiyirateError | DBError
+pub def connect : Connection | MiyrateError | DBError
   ::Db::Db.connect(configured_url!)
 end
 
 # Opens the database, yields it and closes it when the block is left.
-pub def connect(& : Database -> U) : U | MiyirateError | DBError forall U
+pub def connect(& : Database -> U) : U | MiyrateError | DBError forall U
   db = ::Db::Db.open(configured_url!)!
   defer db.close
   yield db
@@ -42,20 +42,20 @@ end
 
 # Every record of the version table, newest first.
 pub def get_versions_last_first_order(db : Database) : Array(Tuple(Int64, Bool)) | DBError
-  db.query_all("SELECT version_id, is_applied from miyirate_db_version ORDER BY id DESC", as: Tuple(Int64, Bool))
+  db.query_all("SELECT version_id, is_applied from miyrate_db_version ORDER BY id DESC", as: Tuple(Int64, Bool))
 end
 
-pub def create_migrations_table(db : Database) : ExecResult | MiyirateError | DBError
+pub def create_migrations_table(db : Database) : ExecResult | MiyrateError | DBError
   dialect!.create_migrations_table(db)
 end
 
-pub def record_migration(version : Int64, direction : Direction, db : Connection) : ExecResult | MiyirateError | DBError
+pub def record_migration(version : Int64, direction : Direction, db : Connection) : ExecResult | MiyrateError | DBError
   dialect!.record_migration(version, direction.forward?, db)
 end
 
 # When the migration *version* was applied, or nil when it is pending or was
 # rolled back.
-pub def get_migration_status(version : Int64, db : Database) : Time? | MiyirateError | DBError
+pub def get_migration_status(version : Int64, db : Database) : Time? | MiyrateError | DBError
   rows = dialect!.migration_status(version, db)!
   if !rows.empty? && rows[0][1]
     rows[0][0]
@@ -64,11 +64,11 @@ pub def get_migration_status(version : Int64, db : Database) : Time? | MiyirateE
   end
 end
 
-def dialect : Dialect | MiyirateError
+def dialect : Dialect | MiyrateError
   Dialect.from_connection_url(configured_url!)
 end
 
 # The configured URL, or the error saying none is.
-pub def configured_url : String | MiyirateError
-  connection_url || MiyirateError.new("No database connection URL is configured. Please set the DATABASE_URL environment variable.")
+pub def configured_url : String | MiyrateError
+  connection_url || MiyrateError.new("No database connection URL is configured. Please set the DATABASE_URL environment variable.")
 end
