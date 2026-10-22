@@ -1,5 +1,5 @@
 # One SQL migration file and the statements it runs in each direction.
-module miyrate/migration
+module miyrate/core
 
 import std/dir::{Dir}
 import std/file::{File}

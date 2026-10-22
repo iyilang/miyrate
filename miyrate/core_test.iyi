@@ -1,8 +1,8 @@
 # micrate's spec/migration_spec.cr. A plain program: a failed `assert` exits
 # non-zero, which is what `iyi test` reads.
-module miyrate/migration_test
+module miyrate/core_test
 
-import miyrate/migration::{Migration, Direction}
+import miyrate/core::{Migration, Direction}
 
 def statements(migration : Migration, direction : Direction) : Array(String)
   migration.statements(direction).map(&.strip)

@@ -10,7 +10,7 @@ import db/db/errors::{DBError}
 import db/db/value::{ExecResult}
 import miyrate/errors::{MiyrateError}
 import miyrate/dialect::{Dialect}
-import miyrate/migration::{Direction}
+import miyrate/core::{Direction}
 
 class Settings
   property connection_url : String? = nil

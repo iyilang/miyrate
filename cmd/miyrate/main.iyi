@@ -1,0 +1,12 @@
+# The `miyrate` executable: micrate's `micrate-cli`. Importing a driver
+# registers it, so this build migrates PostgreSQL (`postgres://`,
+# `postgresql://`) and SQLite (`sqlite3:`) databases.
+module cmd/miyrate/main
+
+import pg/pg/pg
+import sqlite/sqlite/sqlite
+import miyrate/cli
+
+# `::` because `Miyrate` here would be this module's own `Cmd::Miyrate`.
+::Miyrate::Cli.setup_log
+exit ::Miyrate::Cli.run(Program.args)

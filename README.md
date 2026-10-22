@@ -22,7 +22,7 @@ driver itself; iyi has none yet.
 iyi 0.17.0 or later.
 
 ```sh
-iyi build -o bin/miyrate miyrate.iyi
+iyi build -o bin/miyrate cmd/miyrate/main.iyi
 ```
 
 SQLite needs its library at link time; see iyi-sqlite's requirements. On
@@ -115,16 +115,20 @@ written against an older schema. Rename it to a newer version to run it.
 
 ## Library
 
-The modules, under the package's short name:
+```sh
+iyi get github.com/iyilang/miyrate --as miyrate
+```
+
+The modules, under that short name:
 
 | module | what it holds |
 |---|---|
-| `miyrate/miyrate` | `up`, `down`, `redo`, `dbversion`, `migration_status`, `create`, `migration_plan`, `extract_dbversion`, `migrations_dir`, `connection_url=` |
-| `miyrate/db` | `connection_url`, `connect`, and the version-table queries |
-| `miyrate/dialect` | `Dialect` and `Postgres`, `Mysql`, `Sqlite3` |
-| `miyrate/migration` | `Migration`, `Direction` |
-| `miyrate/errors` | `MiyrateError`, `UnorderedMigrations`, `MigrationFailed` |
-| `miyrate/cli` | `run(args)`, `setup_log`, one function per command |
+| `miyrate` | `up`, `down`, `redo`, `dbversion`, `migration_status`, `create`, `migration_plan`, `extract_dbversion`, `migrations_dir`, `connection_url=` |
+| `miyrate/miyrate/db` | `connection_url`, `connect`, and the version-table queries |
+| `miyrate/miyrate/dialect` | `Dialect` and `Postgres`, `Mysql`, `Sqlite3` |
+| `miyrate/miyrate/core` | `Migration`, `Direction` |
+| `miyrate/miyrate/errors` | `MiyrateError`, `UnorderedMigrations`, `MigrationFailed` |
+| `miyrate/miyrate/cli` | `run(args)`, `setup_log`, one function per command |
 
 A runner of your own, with the drivers you want:
 
@@ -143,7 +147,9 @@ exit Miyrate::Cli.run(Program.args)
 or, without the command line:
 
 ```iyi
-Miyrate::Db.connect { |db| Miyrate::Miyrate.up(db) }
+import miyrate
+
+Miyrate::Db.connect { |db| Miyrate.up(db) }
 ```
 
 which answers `nil`, a `MiyrateError` or the driver's `DBError`.
@@ -163,5 +169,5 @@ which answers `nil`, a `MiyrateError` or the driver's `DBError`.
 ## Development
 
 ```sh
-iyi test miyrate   # micrate's specs, ported
+iyi test   # micrate's specs, ported
 ```

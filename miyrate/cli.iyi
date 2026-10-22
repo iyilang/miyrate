@@ -18,9 +18,9 @@ import std/uri::{URI}
 import std/text
 import db/db/errors::{DBError}
 import miyrate/errors::{MiyrateError, UnorderedMigrations}
-import miyrate/migration::{Migration}
+import miyrate/core::{Migration}
 import miyrate/db::{configured_url, connect}
-import miyrate/miyrate::{dbversion, up, down, redo, migration_status, create, migrations_dir}
+import miyrate::{dbversion, up, down, redo, migration_status, create, migrations_dir}
 
 LOG = Log.for("miyrate.cli")
 
