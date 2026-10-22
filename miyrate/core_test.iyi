@@ -1,4 +1,4 @@
-# micrate's spec/migration_spec.cr. A plain program: a failed `assert` exits
+# micrate's spec/migration_spec.cr. A plain program: a failed assertion exits
 # non-zero, which is what `iyi test` reads.
 module miyrate/core_test
 
@@ -16,12 +16,12 @@ CREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);
 -- +miyrate Down
 DROP TABLE foo;")
 
-assert statements(simple, Direction::Forward) == [
+assert_eq [
   "-- +miyrate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
-]
-assert statements(simple, Direction::Backwards) == [
+], statements(simple, Direction::Forward)
+assert_eq [
   "-- +miyrate Down\nDROP TABLE foo;",
-]
+], statements(simple, Direction::Backwards)
 
 # splits mixed Up and Down statements
 mixed = Migration.new(20160101120000_i64, "foo.sql", "\
@@ -37,14 +37,14 @@ CREATE TABLE bar(id INT PRIMARY KEY);
 -- +miyrate Down
 DROP TABLE bar;")
 
-assert statements(mixed, Direction::Forward) == [
+assert_eq [
   "-- +miyrate Up\nCREATE TABLE foo(id INT PRIMARY KEY, name VARCHAR NOT NULL);",
   "-- +miyrate Up\nCREATE TABLE bar(id INT PRIMARY KEY);",
-]
-assert statements(mixed, Direction::Backwards) == [
+], statements(mixed, Direction::Forward)
+assert_eq [
   "-- +miyrate Down\nDROP TABLE foo;",
   "-- +miyrate Down\nDROP TABLE bar;",
-]
+], statements(mixed, Direction::Backwards)
 
 # splits complex statements with user hints: PL/pgSQL with semicolons of
 # its own, inside StatementBegin and StatementEnd
@@ -73,9 +73,7 @@ $$
 language plpgsql;
 -- +miyrate StatementEnd")
 
-ret = statements(complex, Direction::Forward)
-assert ret.size == 1
-assert ret[0] == complex.source
+assert_eq [complex.source], statements(complex, Direction::Forward)
 
 # allows up and down sections with complex scripts
 sections = Migration.new(20160101120000_i64, "foo.sql", "\
@@ -88,9 +86,9 @@ bar;
 -- +miyrate Down
 baz;")
 
-assert statements(sections, Direction::Forward) == [
+assert_eq [
   "-- +miyrate Up\n-- +miyrate StatementBegin\nfoo;\nbar;\n-- +miyrate StatementEnd",
-]
-assert statements(sections, Direction::Backwards) == [
+], statements(sections, Direction::Forward)
+assert_eq [
   "-- +miyrate Down\nbaz;",
-]
+], statements(sections, Direction::Backwards)
