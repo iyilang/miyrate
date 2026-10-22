@@ -3,8 +3,8 @@
 # `postgresql://`) and SQLite (`sqlite3:`) databases.
 module cmd/miyrate/main
 
-import pg/pg/pg
-import sqlite/sqlite/sqlite
+import pg
+import sqlite
 import miyrate/cli
 
 # `::` because `Miyrate` here would be this module's own `Cmd::Miyrate`.

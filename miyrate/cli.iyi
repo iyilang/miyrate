@@ -4,7 +4,7 @@
 # importing a driver is what registers it:
 #
 # ```
-# import pg/pg/pg
+# import pg
 # import miyrate/miyrate/cli
 #
 # exit Miyrate::Cli.run(Program.args)

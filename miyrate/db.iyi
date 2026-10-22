@@ -4,7 +4,7 @@ module miyrate/db
 
 import std/env::{ENV}
 import std/time::{Time}
-import db/db/db
+import db
 import db/db/core::{Database, Connection}
 import db/db/errors::{DBError}
 import db/db/value::{ExecResult}
@@ -30,12 +30,12 @@ end
 
 # Opens a single connection; the caller closes it.
 pub def connect : Connection | MiyrateError | DBError
-  ::Db::Db.connect(configured_url!)
+  ::Db.connect(configured_url!)
 end
 
 # Opens the database, yields it and closes it when the block is left.
 pub def connect(& : Database -> U) : U | MiyrateError | DBError forall U
-  db = ::Db::Db.open(configured_url!)!
+  db = ::Db.open(configured_url!)!
   defer db.close
   yield db
 end

@@ -19,7 +19,7 @@ driver itself; iyi has none yet.
 
 ## Building
 
-iyi 0.17.0 or later.
+iyi 0.18.0 or later.
 
 ```sh
 iyi build -o bin/miyrate cmd/miyrate/main.iyi
@@ -135,7 +135,7 @@ A runner of your own, with the drivers you want:
 ```iyi
 module migrate
 
-import pg/pg/pg
+import pg
 import miyrate/miyrate/cli
 import miyrate/miyrate/db
 
