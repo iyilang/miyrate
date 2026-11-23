@@ -41,7 +41,7 @@ jobs:
         run: iyi test .
 
       - name: Build
-        run: iyi build -o bin/miyrate cmd/miyrate/main.iyi
+        run: mkdir -p bin && iyi build -o bin/miyrate cmd/miyrate/main.iyi
 
       - name: Migrate SQLite
         env:
@@ -82,7 +82,7 @@ jobs:
           echo "$HOME/.iyi/bin" >> "$GITHUB_PATH"
 
       - name: Build
-        run: iyi build -o bin/miyrate cmd/miyrate/main.iyi
+        run: mkdir -p bin && iyi build -o bin/miyrate cmd/miyrate/main.iyi
 
       - name: Migrate PostgreSQL
         run: |

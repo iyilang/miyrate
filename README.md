@@ -25,6 +25,7 @@ those packages, which carry no `@[Unsafe("why")]` marks (SPEC.md III.13),
 and 0.22.0 writes `iyi.sum` lines that 0.21.0 does not read.
 
 ```sh
+mkdir -p bin
 iyi build -o bin/miyrate cmd/miyrate/main.iyi
 ```
 
