@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # The oldest iyi this release supports (README, Building).
+      IYI_VERSION: 0.22.0
+    steps:
+      - uses: actions/checkout@v4
+
+      # macOS has the system's.
+      - name: Install SQLite
+        if: matrix.os == 'ubuntu-24.04'
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Install iyi
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/iyilang/iyi/master/install.sh | IYI_PREFIX="$HOME/.iyi" sh
+          echo "$HOME/.iyi/bin" >> "$GITHUB_PATH"
+
+      - run: iyi version
+
+      # iyi 0.22.0's `iyi test` builds several tests at once, and in a cold
+      # module cache they race fetching the dependencies (iyilang/iyi#246):
+      # fetch them first, which also checks that iyi.mod and iyi.sum are
+      # tidy.
+      - name: Fetch modules
+        run: iyi mod tidy --check
+
+      - name: Test
+        run: iyi test .
+
+      - name: Build
+        run: mkdir -p bin && iyi build -o bin/miyrate cmd/miyrate/main.iyi
+
+      - name: Migrate SQLite
+        env:
+          DATABASE_URL: sqlite3:./app.db
+        run: .github/smoke.sh bin/miyrate
+
+      - name: Check formatting
+        run: iyi fmt --check miyrate.iyi miyrate_test.iyi miyrate cmd
+        if: matrix.os == 'ubuntu-24.04'
+
+  postgres:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      IYI_VERSION: 0.22.0
+      # A database `create` makes and `drop` removes.
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1/miyrate_smoke
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SQLite
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Install iyi
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/iyilang/iyi/master/install.sh | IYI_PREFIX="$HOME/.iyi" sh
+          echo "$HOME/.iyi/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: mkdir -p bin && iyi build -o bin/miyrate cmd/miyrate/main.iyi
+
+      - name: Migrate PostgreSQL
+        run: |
+          bin/miyrate create
+          .github/smoke.sh bin/miyrate
+          bin/miyrate drop

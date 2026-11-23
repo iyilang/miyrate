@@ -19,9 +19,13 @@ driver itself; iyi has none yet.
 
 ## Building
 
-iyi 0.18.0 or later.
+iyi 0.22.0 or later, with iyi-db, iyi-pg and iyi-sqlite 0.6.0 (required by
+this package's `iyi.mod`). iyi 0.21.0 and later refuse the 0.3 releases of
+those packages, which carry no `@[Unsafe("why")]` marks (SPEC.md III.13),
+and 0.22.0 writes `iyi.sum` lines that 0.21.0 does not read.
 
 ```sh
+mkdir -p bin
 iyi build -o bin/miyrate cmd/miyrate/main.iyi
 ```
 
